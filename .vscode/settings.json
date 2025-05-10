@@ -1,5 +1,6 @@
 {
     "git.ignoreLimitWarning": true,
     "java.configuration.updateBuildConfiguration": "automatic",
-    "cmake.sourceDirectory": "C:/Users/Mayu/Projetos/labtrack/labtrack_mobile/windows"
+    "cmake.sourceDirectory": "C:/Users/Mayu/Projetos/labtrack/labtrack_mobile/windows",
+    "cmake.ignoreCMakeListsMissing": true
 }
