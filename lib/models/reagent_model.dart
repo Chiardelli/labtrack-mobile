@@ -1,107 +1,94 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+// lib/models/reagent_model.dart
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
+enum ClassificacaoRisco { SEGURO, ATENCAO, PERIGO }
+enum TipoItem { ACIDO, BASE, SOLVENTE, INDICADOR, SAL_INORGANICO, OUTRO }
+enum Unidade { mL, L, g, kg, mg }
 
 class Reagent {
-  final String? id; // Nullable para novos registros
-  final String name;
-  final String batch;
-  final String type;
-  final String quantity; // Ex: "500 mL"
-  final DateTime expiry;
-  final String location;
-  final String responsible;
-  final DateTime createdAt;
-  final String status; // "available", "low_stock", "expired"
+  final String id;
+  final String descricao;
+  final String fornecedor;
+  final TipoItem tipoItem;
+  final double quantidade;
+  final Unidade unidade;
+  final String locLaboratorio;
+  final String condicoesArmazenamento;
+  final ClassificacaoRisco classificacaoRisco;
+  final DateTime dataFabricacao;
+  final DateTime? dataVencimento;
+  final DateTime dataRegistro;
 
   Reagent({
-    this.id,
-    required this.name,
-    required this.batch,
-    required this.type,
-    required this.quantity,
-    required this.expiry,
-    required this.location,
-    required this.responsible,
-    required this.createdAt,
-    this.status = "available",
+    required this.id,
+    required this.descricao,
+    required this.fornecedor,
+    required this.tipoItem,
+    required this.quantidade,
+    required this.unidade,
+    required this.locLaboratorio,
+    required this.condicoesArmazenamento,
+    required this.classificacaoRisco,
+    required this.dataFabricacao,
+    this.dataVencimento,
+    required this.dataRegistro,
   });
 
-  // Converte o modelo para um Map (Firestore)
-  Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-      'batch': batch,
-      'type': type,
-      'quantity': quantity,
-      'expiry': expiry,
-      'location': location,
-      'responsible': responsible,
-      'createdAt': createdAt,
-      'status': status,
-    };
-  }
-
-  // Cria um Reagent a partir de um DocumentSnapshot do Firestore
-  factory Reagent.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  factory Reagent.fromJson(Map<String, dynamic> json) {
     return Reagent(
-      id: doc.id,
-      name: data['name'] ?? '',
-      batch: data['batch'] ?? '',
-      type: data['type'] ?? '',
-      quantity: data['quantity'] ?? '',
-      expiry: (data['expiry'] as Timestamp).toDate(),
-      location: data['location'] ?? '',
-      responsible: data['responsible'] ?? '',
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      status: data['status'] ?? 'available',
+      id: json['id']?.toString() ?? '',
+      descricao: json['descricao']?.toString() ?? 'Sem descrição',
+      fornecedor: json['fornecedor']?.toString() ?? 'Fornecedor não informado',
+      tipoItem: TipoItem.values.firstWhere(
+        (e) => e.toString().split('.').last == json['tipoItem']?.toString(),
+        orElse: () => TipoItem.OUTRO,
+      ),
+      quantidade: (json['quantidade'] as num?)?.toDouble() ?? 0.0,
+      unidade: Unidade.values.firstWhere(
+        (e) => e.toString().split('.').last == json['unidade']?.toString(),
+        orElse: () => Unidade.mL,
+      ),
+      locLaboratorio: json['locLaboratorio']?.toString() ?? 'Local não informado',
+      condicoesArmazenamento: json['condicoesArmazenamento']?.toString() ?? 'Condições não informadas',
+      classificacaoRisco: ClassificacaoRisco.values.firstWhere(
+        (e) => e.toString().split('.').last == json['classificacaoRisco']?.toString(),
+        orElse: () => ClassificacaoRisco.SEGURO,
+      ),
+      dataFabricacao: json['dataFabricacao'] != null
+          ? DateTime.parse(json['dataFabricacao'])
+          : DateTime.now(),
+      dataVencimento: json['dataVencimento'] != null
+          ? DateTime.parse(json['dataVencimento'])
+          : null,
+      dataRegistro: json['dataRegistro'] != null
+          ? DateTime.parse(json['dataRegistro'])
+          : DateTime.now(),
     );
   }
 
-  // Método para atualizar campos específicos
-  Reagent copyWith({
-    String? name,
-    String? batch,
-    String? type,
-    String? quantity,
-    DateTime? expiry,
-    String? location,
-    String? responsible,
-    String? status,
-  }) {
-    return Reagent(
-      id: id,
-      name: name ?? this.name,
-      batch: batch ?? this.batch,
-      type: type ?? this.type,
-      quantity: quantity ?? this.quantity,
-      expiry: expiry ?? this.expiry,
-      location: location ?? this.location,
-      responsible: responsible ?? this.responsible,
-      createdAt: createdAt,
-      status: status ?? this.status,
-    );
+  String get quantidadeFormatada {
+    return '${quantidade.toStringAsFixed(2)} ${unidade.name}';
   }
 
-  // Calcula dias até a expiração (para alertas)
-  int get daysUntilExpiry {
-    return expiry.difference(DateTime.now()).inDays;
+  String get dataFabricacaoFormatada {
+    return DateFormat('dd/MM/yyyy').format(dataFabricacao);
   }
 
-  // Extrai o valor numérico da quantidade (ex: "500 mL" → 500)
-  double get numericQuantity {
-    try {
-      return double.parse(quantity.split(' ')[0]);
-    } catch (e) {
-      return 0.0;
-    }
+  String? get dataVencimentoFormatada {
+    return dataVencimento != null
+        ? DateFormat('dd/MM/yyyy').format(dataVencimento!)
+        : null;
   }
 
-  // Extrai a unidade (ex: "500 mL" → "mL")
-  String get quantityUnit {
-    try {
-      return quantity.split(' ')[1];
-    } catch (e) {
-      return '';
+  Color get riscoColor {
+    switch (classificacaoRisco) {
+      case ClassificacaoRisco.SEGURO:
+        return Colors.green;
+      case ClassificacaoRisco.ATENCAO:
+        return Colors.orange;
+      case ClassificacaoRisco.PERIGO:
+        return Colors.red;
     }
   }
 }

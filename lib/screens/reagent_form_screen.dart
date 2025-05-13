@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:labtrack_mobile/models/reagent_model.dart';
+import 'package:labtrack_mobile/services/auth_service.dart';
+import 'package:labtrack_mobile/utils/api_config.dart';
 
 class ReagentFormScreen extends StatefulWidget {
   const ReagentFormScreen({super.key});
@@ -12,32 +15,26 @@ class ReagentFormScreen extends StatefulWidget {
 
 class _ReagentFormScreenState extends State<ReagentFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _batchController = TextEditingController();
-  final TextEditingController _quantityController = TextEditingController();
-  final TextEditingController _locationController = TextEditingController();
-  final TextEditingController _responsibleController = TextEditingController();
-  DateTime? _expiryDate;
-  String? _selectedType;
-  String? _selectedUnit;
+  final _descricaoController = TextEditingController();
+  final _fornecedorController = TextEditingController();
+  final _quantidadeController = TextEditingController();
+  final _locLaboratorioController = TextEditingController();
+  final _condicoesController = TextEditingController();
+  
+  DateTime? _dataFabricacao;
+  DateTime? _dataVencimento;
+  TipoItem? _selectedTipoItem;
+  Unidade? _selectedUnidade;
+  ClassificacaoRisco? _selectedClassificacaoRisco;
   bool _isSubmitting = false;
 
-  final List<String> _reagentTypes = [
-    'Ácido',
-    'Base',
-    'Solvente',
-    'Indicador',
-    'Sal Inorgânico',
-    'Outro'
-  ];
+  final AuthService _authService = AuthService();
 
-  final List<String> _unitTypes = ['mL', 'L', 'g', 'kg', 'mg', 'unidades'];
-
-  Future<void> _selectDate(BuildContext context) async {
+  Future<void> _selectDate(BuildContext context, bool isFabricacao) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().add(const Duration(days: 365)),
-      firstDate: DateTime.now(),
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
       lastDate: DateTime(2100),
       builder: (context, child) {
         return Theme(
@@ -57,37 +54,93 @@ class _ReagentFormScreenState extends State<ReagentFormScreen> {
         );
       },
     );
-    if (picked != null && picked != _expiryDate) {
-      setState(() => _expiryDate = picked);
+    
+    if (picked != null) {
+      setState(() {
+        if (isFabricacao) {
+          _dataFabricacao = picked;
+        } else {
+          _dataVencimento = picked;
+        }
+      });
     }
   }
 
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_dataFabricacao == null || _selectedTipoItem == null || 
+        _selectedUnidade == null || _selectedClassificacaoRisco == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Preencha todos os campos obrigatórios')),
+      );
+      return;
+    }
 
     setState(() => _isSubmitting = true);
 
     try {
-      await FirebaseFirestore.instance.collection('reagents').add({
-        'name': _nameController.text.trim(),
-        'batch': _batchController.text.trim(),
-        'type': _selectedType,
-        'quantity': '${_quantityController.text.trim()} ${_selectedUnit ?? 'mL'}',
-        'expiry': _expiryDate,
-        'location': _locationController.text.trim(),
-        'responsible': _responsibleController.text.trim(),
-        'createdAt': FieldValue.serverTimestamp(),
-        'status': 'available',
-      });
+      final accessToken = await _authService.getAccessToken();
+      if (accessToken == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Sessão expirada. Faça login novamente.')),
+          );
+          Navigator.pushReplacementNamed(context, '/login');
+        }
+        return;
+      }
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${_nameController.text} cadastrado com sucesso!'),
-          backgroundColor: Colors.green,
-        ),
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/inventario'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: jsonEncode({
+          'descricao': _descricaoController.text.trim(),
+          'fornecedor': _fornecedorController.text.trim(),
+          'tipoItem': _selectedTipoItem!.name,
+          'quantidade': double.parse(_quantidadeController.text.trim()),
+          'unidade': _selectedUnidade!.name,
+          'locLaboratorio': _locLaboratorioController.text.trim(),
+          'condicoesArmazenamento': _condicoesController.text.trim(),
+          'classificacaoRisco': _selectedClassificacaoRisco!.name,
+          'dataFabricacao': DateFormat('yyyy-MM-dd').format(_dataFabricacao!),
+          'dataVencimento': _dataVencimento != null 
+              ? DateFormat('yyyy-MM-dd').format(_dataVencimento!) 
+              : null,
+        }),
       );
-      Navigator.pop(context);
+
+      if (response.statusCode == 401) {
+        // Token expirado, tentar refresh
+        final newToken = await _authService.refreshToken();
+        if (newToken != null) {
+          await _submitForm(); // Tentar novamente com o novo token
+          return;
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Sessão expirada. Faça login novamente.')),
+            );
+            Navigator.pushReplacementNamed(context, '/login');
+          }
+          return;
+        }
+      }
+
+      if (response.statusCode == 201) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Reagente cadastrado com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      } else {
+        throw Exception('Falha ao cadastrar reagente');
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -101,16 +154,6 @@ class _ReagentFormScreenState extends State<ReagentFormScreen> {
         setState(() => _isSubmitting = false);
       }
     }
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _batchController.dispose();
-    _quantityController.dispose();
-    _locationController.dispose();
-    _responsibleController.dispose();
-    super.dispose();
   }
 
   @override
@@ -133,34 +176,58 @@ class _ReagentFormScreenState extends State<ReagentFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const _SectionHeader(title: 'Informações do Reagente'),
-              _buildFormField(
-                label: 'Nome do Reagente*',
-                hint: 'Ex: Ácido Clorídrico',
-                controller: _nameController,
-                validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-                icon: Icons.science,
-                isRequired: true,
+              const Text(
+                'Informações Básicas',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0061A8),
+                ),
               ),
+              const SizedBox(height: 16),
+              
+              // Descrição
               _buildFormField(
-                label: 'Número do Lote*',
-                hint: 'Ex: LOTE-2024-001',
-                controller: _batchController,
-                validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-                icon: Icons.tag,
-                isRequired: true,
+                label: 'Descrição*',
+                hint: 'Ex: Ácido Clorídrico P.A.',
+                controller: _descricaoController,
+                validator: (v) => v!.isEmpty ? 'Campo obrigatório' : null,
+                icon: Icons.description,
               ),
-              _buildDropdown(
-                label: 'Tipo de Reagente*',
-                value: _selectedType,
-                items: _reagentTypes,
-                onChanged: (value) => setState(() => _selectedType = value),
-                validator: (value) => value == null ? 'Selecione um tipo' : null,
+              
+              // Fornecedor
+              _buildFormField(
+                label: 'Fornecedor*',
+                hint: 'Ex: Sigma-Aldrich',
+                controller: _fornecedorController,
+                validator: (v) => v!.isEmpty ? 'Campo obrigatório' : null,
+                icon: Icons.business,
+              ),
+              
+              // Tipo de Item
+              _buildDropdown<TipoItem>(
+                label: 'Tipo de Item*',
+                hint: 'Selecione o tipo',
+                value: _selectedTipoItem,
+                items: TipoItem.values,
+                onChanged: (v) => setState(() => _selectedTipoItem = v),
+                validator: (v) => v == null ? 'Selecione um tipo' : null,
                 icon: Icons.category,
-                isRequired: true,
+                displayText: (item) => item.toString().split('.').last,
               ),
-
-              const _SectionHeader(title: 'Controle de Estoque'),
+              
+              const SizedBox(height: 24),
+              const Text(
+                'Controle de Estoque',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0061A8),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Quantidade e Unidade
               Row(
                 children: [
                   Expanded(
@@ -168,51 +235,100 @@ class _ReagentFormScreenState extends State<ReagentFormScreen> {
                     child: _buildFormField(
                       label: 'Quantidade*',
                       hint: 'Ex: 500',
-                      controller: _quantityController,
+                      controller: _quantidadeController,
                       keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value!.isEmpty) return 'Campo obrigatório';
-                        if (double.tryParse(value) == null) return 'Número inválido';
+                      validator: (v) {
+                        if (v!.isEmpty) return 'Campo obrigatório';
+                        if (double.tryParse(v) == null) return 'Valor inválido';
                         return null;
                       },
                       icon: Icons.scale,
-                      isRequired: true,
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     flex: 2,
-                    child: _buildDropdown(
+                    child: _buildDropdown<Unidade>(
                       label: 'Unidade*',
-                      value: _selectedUnit,
-                      items: _unitTypes,
-                      onChanged: (value) => setState(() => _selectedUnit = value),
-                      validator: (value) => value == null ? 'Selecione' : null,
+                      hint: 'Selecione',
+                      value: _selectedUnidade,
+                      items: Unidade.values,
+                      onChanged: (v) => setState(() => _selectedUnidade = v),
+                      validator: (v) => v == null ? 'Selecione uma unidade' : null,
                       icon: Icons.straighten,
-                      isRequired: true,
+                      displayText: (item) => item.name,
                     ),
                   ),
                 ],
               ),
-              _buildDateField(),
-
-              const _SectionHeader(title: 'Localização'),
+              
+              // Local no Laboratório
               _buildFormField(
-                label: 'Local no Laboratório',
+                label: 'Local no Laboratório*',
                 hint: 'Ex: Armário 3, Prateleira B',
-                controller: _locationController,
+                controller: _locLaboratorioController,
+                validator: (v) => v!.isEmpty ? 'Campo obrigatório' : null,
                 icon: Icons.location_on,
-                validator: (value) => null, // Campo não obrigatório
               ),
+              
+              // Condições de Armazenamento
               _buildFormField(
-                label: 'Responsável*',
-                hint: 'Nome do responsável',
-                controller: _responsibleController,
-                validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
-                icon: Icons.person,
-                isRequired: true,
+                label: 'Condições de Armazenamento*',
+                hint: 'Ex: Temperatura ambiente, protegido da luz',
+                controller: _condicoesController,
+                validator: (v) => v!.isEmpty ? 'Campo obrigatório' : null,
+                icon: Icons.storage,
               ),
-
+              
+              const SizedBox(height: 24),
+              const Text(
+                'Segurança',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0061A8),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Classificação de Risco
+              _buildDropdown<ClassificacaoRisco>(
+                label: 'Classificação de Risco*',
+                hint: 'Selecione a classificação',
+                value: _selectedClassificacaoRisco,
+                items: ClassificacaoRisco.values,
+                onChanged: (v) => setState(() => _selectedClassificacaoRisco = v),
+                validator: (v) => v == null ? 'Selecione uma classificação' : null,
+                icon: Icons.warning,
+                displayText: (item) => item.toString().split('.').last,
+              ),
+              
+              const SizedBox(height: 24),
+              const Text(
+                'Datas',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0061A8),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Data de Fabricação
+              _buildDateField(
+                label: 'Data de Fabricação*',
+                value: _dataFabricacao,
+                onTap: () => _selectDate(context, true),
+              ),
+              
+              // Data de Vencimento (opcional)
+              _buildDateField(
+                label: 'Data de Vencimento',
+                value: _dataVencimento,
+                onTap: () => _selectDate(context, false),
+                isRequired: false,
+              ),
+              
               const SizedBox(height: 30),
               SizedBox(
                 width: double.infinity,
@@ -250,28 +366,18 @@ class _ReagentFormScreenState extends State<ReagentFormScreen> {
     required String? Function(String?) validator,
     IconData? icon,
     TextInputType keyboardType = TextInputType.text,
-    bool isRequired = false,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          RichText(
-            text: TextSpan(
-              text: label,
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF2E3A47),
-                fontSize: 14,
-              ),
-              children: [
-                if (isRequired)
-                  const TextSpan(
-                    text: '*',
-                    style: TextStyle(color: Colors.red),
-                  ),
-              ],
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF2E3A47),
+              fontSize: 14,
             ),
           ),
           const SizedBox(height: 8),
@@ -301,41 +407,34 @@ class _ReagentFormScreenState extends State<ReagentFormScreen> {
     );
   }
 
-  Widget _buildDropdown({
+  Widget _buildDropdown<T>({
     required String label,
-    required String? value,
-    required List<String> items,
-    required void Function(String?) onChanged,
-    required String? Function(String?) validator,
+    required String hint,
+    required T? value,
+    required List<T> items,
+    required void Function(T?) onChanged,
+    required String? Function(T?) validator,
     required IconData icon,
-    bool isRequired = false,
+    required String Function(T) displayText,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          RichText(
-            text: TextSpan(
-              text: label,
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF2E3A47),
-                fontSize: 14,
-              ),
-              children: [
-                if (isRequired)
-                  const TextSpan(
-                    text: '*',
-                    style: TextStyle(color: Colors.red),
-                  ),
-              ],
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF2E3A47),
+              fontSize: 14,
             ),
           ),
           const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
+          DropdownButtonFormField<T>(
             value: value,
             decoration: InputDecoration(
+              hintText: hint,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(
@@ -348,11 +447,10 @@ class _ReagentFormScreenState extends State<ReagentFormScreen> {
               ),
               prefixIcon: Icon(icon, color: const Color(0xFF0061A8)),
             ),
-            hint: const Text('Selecione'),
-            items: items.map((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
+            items: items.map((T item) {
+              return DropdownMenuItem<T>(
+                value: item,
+                child: Text(displayText(item)),
               );
             }).toList(),
             onChanged: onChanged,
@@ -363,15 +461,20 @@ class _ReagentFormScreenState extends State<ReagentFormScreen> {
     );
   }
 
-  Widget _buildDateField() {
+  Widget _buildDateField({
+    required String label,
+    required DateTime? value,
+    required VoidCallback onTap,
+    bool isRequired = true,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Data de Validade*',
-            style: TextStyle(
+          Text(
+            label,
+            style: const TextStyle(
               fontWeight: FontWeight.w500,
               color: Color(0xFF2E3A47),
               fontSize: 14,
@@ -379,7 +482,7 @@ class _ReagentFormScreenState extends State<ReagentFormScreen> {
           ),
           const SizedBox(height: 8),
           InkWell(
-            onTap: () => _selectDate(context),
+            onTap: onTap,
             borderRadius: BorderRadius.circular(10),
             child: InputDecorator(
               decoration: InputDecoration(
@@ -402,11 +505,11 @@ class _ReagentFormScreenState extends State<ReagentFormScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    _expiryDate == null
-                        ? 'Selecione uma data'
-                        : DateFormat('dd/MM/yyyy').format(_expiryDate!),
+                    value == null
+                        ? isRequired ? 'Selecione uma data' : 'Opcional'
+                        : DateFormat('dd/MM/yyyy').format(value),
                     style: TextStyle(
-                      color: _expiryDate == null
+                      color: value == null
                           ? Colors.grey[500]
                           : Colors.black,
                     ),
@@ -416,28 +519,18 @@ class _ReagentFormScreenState extends State<ReagentFormScreen> {
               ),
             ),
           ),
+          if (isRequired && value == null)
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text(
+                'Campo obrigatório',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 12,
+                ),
+              ),
+            ),
         ],
-      ),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-
-  const _SectionHeader({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 16),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-          color: Color(0xFF0061A8),
-        ),
       ),
     );
   }
