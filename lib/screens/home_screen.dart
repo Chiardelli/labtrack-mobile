@@ -3,7 +3,10 @@ import 'package:labtrack_mobile/models/reagent_model.dart';
 import 'package:labtrack_mobile/repository/reagent_repository.dart';
 import 'package:labtrack_mobile/screens/reagent_details_screen.dart';
 import 'package:labtrack_mobile/screens/reagent_form_screen.dart';
+import 'package:labtrack_mobile/screens/qr_scan_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:flutter/services.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -49,6 +52,46 @@ class _HomeScreenState extends State<HomeScreen> {
     await _loadReagents();
   }
 
+  void _showTransportQRDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('QR Code para Transporte'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            QrImageView(
+              data: 'transport_mode:true',
+              version: QrVersions.auto,
+              size: 200,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Modo Transporte Ativado',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const Text('Este QR Code permite registrar movimentações de reagentes'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Clipboard.setData(const ClipboardData(text: 'transport_mode:true'));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Código copiado para a área de transferência')),
+              );
+            },
+            child: const Text('Copiar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fechar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,6 +110,21 @@ class _HomeScreenState extends State<HomeScreen> {
               )
             : const Text('LabTrack'),
         actions: [
+          if (!_isSearching)
+            IconButton(
+              icon: const Icon(Icons.qr_code_scanner),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const QrScanScreen()),
+                );
+              },
+            ),
+          if (!_isSearching)
+            IconButton(
+              icon: const Icon(Icons.directions_car),
+              onPressed: _showTransportQRDialog,
+            ),
           IconButton(
             icon: Icon(_isSearching ? Icons.close : Icons.search),
             onPressed: () {
@@ -153,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<Widget> _buildFeaturedReagents(List<Reagent> reagents) {
     return reagents.map((reagent) {
-      final progressValue = reagent.quantidade / 1000; // Ajuste conforme sua lógica de estoque
+      final progressValue = reagent.quantidade / 1000;
       
       return Card(
         margin: const EdgeInsets.only(bottom: 16),
