@@ -31,6 +31,29 @@
 
   <title>labtrack_mobile</title>
   <link rel="manifest" href="manifest.json">
+
+  <script type="text/javascript">
+    // Configuração de deep linking para web
+    if (window.location.hash) {
+      const hash = window.location.hash.substring(1);
+      if (hash.startsWith('labtrack://transport/')) {
+        const transportCode = hash.split('/').pop();
+        window.location.href = '/#/transport-details?code=' + transportCode;
+      }
+    }
+
+    // Event listener para mudanças na hash
+    window.addEventListener('hashchange', function() {
+      const hash = window.location.hash.substring(1);
+      if (hash.startsWith('labtrack://transport/')) {
+        const transportCode = hash.split('/').pop();
+        window.location.href = '/#/transport-details?code=' + transportCode;
+      }
+    });
+
+    // The value below is injected by flutter build, do not touch.
+    var serviceWorkerVersion = null;
+  </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

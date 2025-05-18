@@ -7,7 +7,7 @@ enum TipoItem { ACIDO, BASE, SOLVENTE, INDICADOR, SAL_INORGANICO, OUTRO }
 enum Unidade { mL, L, g, kg, mg }
 
 class Reagent {
-  final String id;
+  final String codigoItem;
   final String descricao;
   final String fornecedor;
   final TipoItem tipoItem;
@@ -21,7 +21,7 @@ class Reagent {
   final DateTime dataRegistro;
 
   Reagent({
-    required this.id,
+    required this.codigoItem,
     required this.descricao,
     required this.fornecedor,
     required this.tipoItem,
@@ -37,7 +37,7 @@ class Reagent {
 
   factory Reagent.fromJson(Map<String, dynamic> json) {
     return Reagent(
-      id: json['id']?.toString() ?? '',
+      codigoItem: json['codigoItem']?.toString() ?? '',
       descricao: json['descricao']?.toString() ?? 'Sem descrição',
       fornecedor: json['fornecedor']?.toString() ?? 'Fornecedor não informado',
       tipoItem: TipoItem.values.firstWhere(

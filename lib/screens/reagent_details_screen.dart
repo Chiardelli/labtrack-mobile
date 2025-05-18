@@ -205,7 +205,7 @@ class ReagentDetailsScreen extends StatelessWidget {
   void _showInventoryQR(BuildContext context) {
     final inventoryData = {
       'type': 'inventory',
-      'reagentId': reagent.id,
+      'reagentId': reagent.codigoItem,
       'description': reagent.descricao,
       'currentQuantity': reagent.quantidade,
       'unit': reagent.unidade.name,

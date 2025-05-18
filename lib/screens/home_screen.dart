@@ -5,6 +5,7 @@ import 'package:labtrack_mobile/screens/reagent_details_screen.dart';
 import 'package:labtrack_mobile/screens/reagent_form_screen.dart';
 import 'package:labtrack_mobile/screens/qr_scan_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:labtrack_mobile/screens/transport_screen.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:flutter/services.dart';
 
@@ -123,7 +124,12 @@ class _HomeScreenState extends State<HomeScreen> {
           if (!_isSearching)
             IconButton(
               icon: const Icon(Icons.directions_car),
-              onPressed: _showTransportQRDialog,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const TransportScreen()),
+                );
+              },
             ),
           IconButton(
             icon: Icon(_isSearching ? Icons.close : Icons.search),
