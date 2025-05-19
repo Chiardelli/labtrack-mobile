@@ -346,6 +346,7 @@ class _ReagentFormScreenState extends State<ReagentFormScreen> {
                       : const Text(
                           'CADASTRAR REAGENTE',
                           style: TextStyle(
+                            color: Colors.white,
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),

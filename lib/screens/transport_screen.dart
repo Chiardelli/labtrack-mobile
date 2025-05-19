@@ -305,7 +305,12 @@ class _TransportScreenState extends State<TransportScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0061A8),
                   ),
-                  child: const Text('Gerar QR Code'),
+                  child: const Text('Gerar QR Code',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),),
                 ),
               ),
             ],
