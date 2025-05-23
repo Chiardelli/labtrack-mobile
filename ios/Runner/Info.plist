@@ -45,18 +45,22 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
-			<key>CFBundleURLName</key>
-			<string>labtrack.transport</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>labtrack</string>
 			</array>
 		</dict>
+	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:localhost</string>
 	</array>
 </dict>
 </plist>

@@ -33,13 +33,20 @@
             </intent-filter>
 
             <!-- Deep Link Configuration -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <!-- Formato 1 -->
                 <data 
-                    android:scheme="labtrack"
-                    android:host="transport" />
+                    android:scheme="http"
+                    android:host="localhost"
+                    android:pathPrefix="/reagent/"/>
+                <!-- Formato 2 -->
+                <data 
+                    android:scheme="http"
+                    android:host="localhost"
+                    android:pathPrefix="/reagent-scanned"/>
             </intent-filter>
         </activity>
 

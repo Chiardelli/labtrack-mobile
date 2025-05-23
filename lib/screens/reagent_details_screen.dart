@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:labtrack_mobile/models/reagent_model.dart';
 import 'package:intl/intl.dart';
-import 'package:qr_flutter/qr_flutter.dart';
-import 'package:flutter/services.dart';
-import 'dart:convert';
 
 class ReagentDetailsScreen extends StatelessWidget {
   final Reagent reagent;
@@ -141,20 +138,6 @@ class ReagentDetailsScreen extends StatelessWidget {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.inventory_2, size: 20),
-              label: const Text('Gerar QR Code para Baixa'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              onPressed: () => _showInventoryQR(context),
-            ),
-          ),
         ],
       ),
     );
@@ -210,47 +193,5 @@ class ReagentDetailsScreen extends StatelessWidget {
       'currentQuantity': reagent.quantidade,
       'unit': reagent.unidade.name,
     };
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('QR Code para Baixa no Estoque'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            QrImageView(
-              data: jsonEncode(inventoryData),
-              version: QrVersions.auto,
-              size: 200,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              reagent.descricao,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              '${reagent.quantidade} ${reagent.unidade.name}',
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: jsonEncode(inventoryData)));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Dados copiados para a área de transferência')),
-              );
-            },
-            child: const Text('Copiar Dados'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Fechar'),
-          ),
-        ],
-      ),
-    );
   }
 }

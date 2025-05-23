@@ -64,14 +64,6 @@ class TransportRepository {
     }
   }
 
-  String getTransportDeepLink(String transportCode) {
-  return 'labtrack://transport/$transportCode';
-}
-
-Future<String> getTransportQRCode(String transportCode) async {
-  return getTransportDeepLink(transportCode);
-}
-
   Future<TransportModel> getTransport(String transportCode) async {
     final accessToken = await AuthService().getAccessToken();
     final response = await http.get(

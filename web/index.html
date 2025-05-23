@@ -32,28 +32,35 @@
   <title>labtrack_mobile</title>
   <link rel="manifest" href="manifest.json">
 
-  <script type="text/javascript">
-    // Configuração de deep linking para web
-    if (window.location.hash) {
-      const hash = window.location.hash.substring(1);
-      if (hash.startsWith('labtrack://transport/')) {
-        const transportCode = hash.split('/').pop();
-        window.location.href = '/#/transport-details?code=' + transportCode;
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const handleInitialRoute = () => {
+      const uri = new URL(window.location.href);
+      
+      // Suporta ambos os formatos:
+      // 1. /reagent/123
+      // 2. /reagent-scanned?id=123
+      
+      let itemId = null;
+      
+      if (uri.pathname.includes('/reagent/')) {
+        itemId = uri.pathname.split('/').pop();
+      } else if (uri.pathname.includes('/reagent-scanned')) {
+        itemId = uri.searchParams.get('id');
       }
-    }
-
-    // Event listener para mudanças na hash
-    window.addEventListener('hashchange', function() {
-      const hash = window.location.hash.substring(1);
-      if (hash.startsWith('labtrack://transport/')) {
-        const transportCode = hash.split('/').pop();
-        window.location.href = '/#/transport-details?code=' + transportCode;
+      
+      if (itemId) {
+        window._flutterweb = {
+          initialRoute: '/reagent-scanned',
+          arguments: itemId
+        };
       }
-    });
-
-    // The value below is injected by flutter build, do not touch.
-    var serviceWorkerVersion = null;
-  </script>
+    };
+    
+    // Dá tempo para o Flutter inicializar
+    setTimeout(handleInitialRoute, 500);
+  });
+</script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

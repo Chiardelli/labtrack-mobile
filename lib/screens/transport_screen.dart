@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:labtrack_mobile/models/reagent_model.dart';
 import 'package:labtrack_mobile/models/transport_model.dart';
 import 'package:labtrack_mobile/repository/transport_repository.dart';
 import 'package:labtrack_mobile/screens/select_items_screen.dart';
-import 'package:labtrack_mobile/screens/transport_details_screen.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 
 class TransportScreen extends StatefulWidget {
   const TransportScreen({Key? key}) : super(key: key);
@@ -66,10 +63,8 @@ class _TransportScreenState extends State<TransportScreen> {
 
     try {
       final transportCode = await _repository.createTransport(reagents);
-      final qrData = await _repository.getTransportQRCode(transportCode);
       
       Navigator.pop(context); // Fecha o loading
-      _showTransportQRDialog(context, transportCode, qrData);
       await _loadTransports(); // Atualiza a lista de transportes
     } catch (e) {
       Navigator.pop(context); // Fecha o loading
@@ -77,81 +72,6 @@ class _TransportScreenState extends State<TransportScreen> {
         SnackBar(content: Text('Erro ao criar transporte: $e')),
       );
     }
-  }
-
-  void _showTransportQRDialog(
-    BuildContext context, String transportCode, String qrData) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text('Transporte #${transportCode.substring(0, 8)}'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-              ),
-              child: QrImageView(
-                data: qrData,
-                version: QrVersions.auto,
-                size: 200,
-                errorStateBuilder: (cxt, err) {
-                  return Column(
-                    children: [
-                      const Icon(Icons.error, color: Colors.red, size: 50),
-                      Text('Erro: $err', textAlign: TextAlign.center),
-                    ],
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Escaneie este QR Code para confirmar a entrega',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              qrData,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () {
-            Clipboard.setData(ClipboardData(text: qrData));
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Link copiado!')),
-            );
-          },
-          child: const Text('Copiar Link'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Fechar'),
-        ),
-      ],
-    ),
-  );
-}
-
-  Future<void> _showTransportDetails(
-      BuildContext context, String transportCode) async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TransportDetailsScreen(
-          transportCode: transportCode,
-        ),
-      ),
-    );
-    await _loadTransports(); // Atualiza a lista após possíveis alterações
   }
 
   @override
@@ -294,43 +214,12 @@ class _TransportScreenState extends State<TransportScreen> {
                   ),
                 ),
               ).toList(),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => _generateTransportQRCode(
-                    context, 
-                    transport.codigoTransporte,
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0061A8),
-                  ),
-                  child: const Text('Gerar QR Code',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),),
-                ),
-              ),
             ],
           ),
         ),
       ],
     ),
   );
-}
-
-Future<void> _generateTransportQRCode(
-    BuildContext context, String transportCode) async {
-  try {
-    final qrData = await _repository.getTransportQRCode(transportCode);
-    _showTransportQRDialog(context, transportCode, qrData);
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Erro ao gerar QR Code: $e')),
-    );
-  }
 }
 
   Widget _buildDetailItem(String label, String value) {
