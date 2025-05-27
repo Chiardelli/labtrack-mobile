@@ -67,28 +67,42 @@ class _QrScanScreenState extends State<QrScanScreen> {
     );
   }
 
-  void _onQRViewCreated(QRViewController controller) {
-    this.controller = controller;
-    controller.scannedDataStream.listen((scanData) {
-      if (!_isLoading) {
-        setState(() => _isLoading = true);
-        // Simula processamento
-        Future.delayed(const Duration(seconds: 1), () {
-          setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("Reagente escaneado: ${scanData.code}"),
-              backgroundColor: const Color(0xFF0061A8),
-            ),
-          );
-        });
-      }
-    });
-  }
+void _onQRViewCreated(QRViewController controller) {
+  this.controller = controller;
 
-  @override
-  void dispose() {
-    controller?.dispose();
-    super.dispose();
-  }
+  controller.scannedDataStream.listen((scanData) async {
+    if (!_isLoading) {
+      setState(() => _isLoading = true);
+
+      final String? qrCode = scanData.code;
+
+      if (qrCode != null && qrCode.startsWith("reagent:")) {
+        final String reagentId = qrCode.split(":")[1];
+
+        // Para a câmera para evitar múltiplos scans
+        await controller.pauseCamera();
+
+        // Navegar para a tela de detalhes
+        Navigator.pushNamed(
+          context,
+          '/reagent-scanned',
+          arguments: reagentId,
+        ).then((_) {
+          // Quando voltar, reativa a câmera
+          controller.resumeCamera();
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("QR Code inválido!"),
+            backgroundColor: Color(0xFF0061A8),
+          ),
+        );
+      }
+
+      setState(() => _isLoading = false);
+    }
+  });
+}
+
 }
