@@ -3,6 +3,7 @@ import 'package:labtrack_mobile/models/reagent_model.dart';
 import 'package:labtrack_mobile/models/transport_model.dart';
 import 'package:labtrack_mobile/repository/transport_repository.dart';
 import 'package:labtrack_mobile/screens/select_items_screen.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 class TransportScreen extends StatefulWidget {
   const TransportScreen({Key? key}) : super(key: key);
@@ -53,8 +54,7 @@ class _TransportScreenState extends State<TransportScreen> {
     }
   }
 
-  Future<void> _createTransportWithItems(
-      BuildContext context, List<Reagent> reagents) async {
+  Future<void> _createTransportWithItems(BuildContext context, List<Reagent> reagents) async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -63,7 +63,6 @@ class _TransportScreenState extends State<TransportScreen> {
 
     try {
       final transportCode = await _repository.createTransport(reagents);
-      
       Navigator.pop(context); // Fecha o loading
       await _loadTransports(); // Atualiza a lista de transportes
     } catch (e) {
@@ -133,94 +132,111 @@ class _TransportScreenState extends State<TransportScreen> {
   }
 
   Widget _buildTransportCard(TransportModel transport) {
-  return Card(
-    margin: const EdgeInsets.only(bottom: 16),
-    elevation: 2,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: ExpansionTile(
-      leading: Container(
-        width: 10,
-        height: 10,
-        decoration: BoxDecoration(
-          color: transport.statusColor,
-          shape: BoxShape.circle,
-        ),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
       ),
-      title: Text(
-        'Transporte #${transport.codigoTransporte.substring(0, 8)}',
-        style: const TextStyle(fontWeight: FontWeight.bold),
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Status: ${_formatStatus(transport.statusTransporte)}'),
-          Text('Enviado em: ${transport.dataSaidaFormatada}'),
-        ],
-      ),
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildUserInfo('Enviado por:', transport.usuarioEnviado),
-              if (transport.usuarioRecebido != null)
-                _buildUserInfo('Recebido por:', transport.usuarioRecebido!),
-              if (transport.dataRecebimento != null)
-                _buildDetailItem(
-                  'Recebido em:', 
-                  transport.dataRecebimentoFormatada!,
-                ),
-              const SizedBox(height: 16),
-              const Text(
-                'Itens Transportados:',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 8),
-              ...transport.itens.map((item) => 
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.arrow_right, size: 16),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.descricao,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            Text(
-                              '${item.quantidadeFormatada} • ${_formatStatus(item.classificacaoRisco.toString().split('.').last)}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ).toList(),
-            ],
+      child: ExpansionTile(
+        leading: Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: transport.statusColor,
+            shape: BoxShape.circle,
           ),
         ),
-      ],
-    ),
-  );
-}
+        title: Text(
+          'Transporte #${transport.codigoTransporte.substring(0, 8)}',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Status: ${_formatStatus(transport.statusTransporte)}'),
+            Text('Enviado em: ${transport.dataSaidaFormatada}'),
+          ],
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildUserInfo('Enviado por:', transport.usuarioEnviado),
+                if (transport.usuarioRecebido != null)
+                  _buildUserInfo('Recebido por:', transport.usuarioRecebido!),
+                if (transport.dataRecebimento != null)
+                  _buildDetailItem(
+                    'Recebido em:',
+                    transport.dataRecebimentoFormatada!,
+                  ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Itens Transportados:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...transport.itens.map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.arrow_right, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.descricao,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              Text(
+                                '${item.quantidadeFormatada} • ${_formatStatus(item.classificacaoRisco.toString().split('.').last)}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ).toList(),
+                const SizedBox(height: 16),
+                const Text(
+                  'QR Code do Transporte:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Center(
+                  child: QrImageView(
+                    data: transport.codigoTransporte, 
+                    version: QrVersions.auto,
+                    size: 120.0,
+                    backgroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildDetailItem(String label, String value) {
     return Padding(
