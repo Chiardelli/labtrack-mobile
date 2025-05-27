@@ -134,6 +134,43 @@ class ReagentDetailsScreen extends StatelessWidget {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  // Aqui começa o card do QR Code
+                  if (reagent.qrCodeImageUrl != null && reagent.qrCodeImageUrl!.isNotEmpty)
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              'QR Code do Reagente',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 12),
+                            Image.network(
+                              reagent.qrCodeImageUrl!,
+                              width: 200,
+                              height: 200,
+                              errorBuilder: (context, error, stackTrace) => 
+                                const Text('Falha ao carregar QR Code'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Text(
+                        'QR Code não disponível',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ),
                 ],
               ),
             ),

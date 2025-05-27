@@ -4,6 +4,7 @@ import 'package:labtrack_mobile/models/reagent_model.dart';
 
 class TransportModel {
   final String codigoTransporte;
+  final String? qrCodeImageUrl;
   final UserTransport usuarioEnviado;
   final UserTransport? usuarioRecebido;
   final DateTime? dataRecebimento;
@@ -13,6 +14,7 @@ class TransportModel {
 
   TransportModel({
     required this.codigoTransporte,
+    this.qrCodeImageUrl,
     required this.usuarioEnviado,
     this.usuarioRecebido,
     this.dataRecebimento,
@@ -24,6 +26,9 @@ class TransportModel {
   factory TransportModel.fromJson(Map<String, dynamic> json) {
     return TransportModel(
       codigoTransporte: json['codigoTransporte'],
+      qrCodeImageUrl: json['qrCodeImageUrl'] != null
+          ? json['qrCodeImageUrl'].toString()
+          : null,
       usuarioEnviado: UserTransport.fromJson(json['usuarioEnviado']),
       usuarioRecebido: json['usuarioRecebido'] != null 
           ? UserTransport.fromJson(json['usuarioRecebido'])
