@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:labtrack_mobile/models/reagent_model.dart';
 import 'package:intl/intl.dart';
+import 'package:labtrack_mobile/screens/reagent_edit_screen.dart';
 
 class ReagentDetailsScreen extends StatelessWidget {
   final Reagent reagent;
@@ -11,8 +12,32 @@ class ReagentDetailsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Detalhes do Reagente'),
+        title: const Text(
+          'Detalhes do Reagente',
+          style: TextStyle(
+            fontFamily:
+                'Poppins', // nome da fonte customizada (se você tiver importado)
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit, color: Colors.white),
+            tooltip: 'Editar',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ReagentEditScreen(reagent: reagent),
+                ),
+              );
+            },
+          ),
+        ],
       ),
+
       body: Column(
         children: [
           Expanded(
@@ -42,18 +67,21 @@ class ReagentDetailsScreen extends StatelessWidget {
                           children: [
                             Text(
                               reagent.descricao,
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold),
                             ),
-                            if (reagent.dataVencimento != null && 
-                                reagent.dataVencimento!.isBefore(DateTime.now()))
+                            if (reagent.dataVencimento != null &&
+                                reagent.dataVencimento!.isBefore(
+                                  DateTime.now(),
+                                ))
                               Text(
                                 'VENCIDO',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Colors.red,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodySmall?.copyWith(
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                           ],
                         ),
@@ -70,12 +98,33 @@ class ReagentDetailsScreen extends StatelessWidget {
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         children: [
-                          _buildDetailItem('Fornecedor', reagent.fornecedor, icon: Icons.business),
-                          _buildDetailItem('Tipo', reagent.tipoItem.toString().split('.').last, icon: Icons.category),
-                          _buildDetailItem('Quantidade', reagent.quantidadeFormatada, icon: Icons.scale),
+                          if (reagent.possuiOrgaoRegulador)
+                            _buildDetailItem(
+                              'Órgão Regulador',
+                              reagent.orgaoRegulador ?? 'Não informado',
+                              icon: Icons.gavel,
+                            ),
                           _buildDetailItem(
-                            'Classificação de Risco', 
-                            reagent.classificacaoRisco.toString().split('.').last,
+                            'Fornecedor',
+                            reagent.fornecedor,
+                            icon: Icons.business,
+                          ),
+                          _buildDetailItem(
+                            'Tipo',
+                            reagent.tipoItem.toString().split('.').last,
+                            icon: Icons.category,
+                          ),
+                          _buildDetailItem(
+                            'Quantidade',
+                            reagent.quantidadeFormatada,
+                            icon: Icons.scale,
+                          ),
+                          _buildDetailItem(
+                            'Classificação de Risco',
+                            reagent.classificacaoRisco
+                                .toString()
+                                .split('.')
+                                .last,
                             icon: Icons.warning,
                             color: reagent.riscoColor,
                           ),
@@ -93,9 +142,13 @@ class ReagentDetailsScreen extends StatelessWidget {
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         children: [
-                          _buildDetailItem('Local no Laboratório', reagent.locLaboratorio, icon: Icons.location_on),
                           _buildDetailItem(
-                            'Condições de Armazenamento', 
+                            'Local no Laboratório',
+                            reagent.locLaboratorio,
+                            icon: Icons.location_on,
+                          ),
+                          _buildDetailItem(
+                            'Condições de Armazenamento',
                             reagent.condicoesArmazenamento,
                             icon: Icons.storage,
                           ),
@@ -114,20 +167,28 @@ class ReagentDetailsScreen extends StatelessWidget {
                       child: Column(
                         children: [
                           _buildDetailItem(
-                            'Data de Fabricação', 
-                            DateFormat('dd/MM/yyyy').format(reagent.dataFabricacao),
+                            'Data de Fabricação',
+                            DateFormat(
+                              'dd/MM/yyyy',
+                            ).format(reagent.dataFabricacao),
                             icon: Icons.date_range,
                           ),
                           if (reagent.dataVencimento != null)
                             _buildDetailItem(
-                              'Data de Vencimento', 
-                              DateFormat('dd/MM/yyyy').format(reagent.dataVencimento!),
+                              'Data de Vencimento',
+                              DateFormat(
+                                'dd/MM/yyyy',
+                              ).format(reagent.dataVencimento!),
                               icon: Icons.event_busy,
-                              isExpired: reagent.dataVencimento!.isBefore(DateTime.now()),
+                              isExpired: reagent.dataVencimento!.isBefore(
+                                DateTime.now(),
+                              ),
                             ),
                           _buildDetailItem(
-                            'Data de Registro', 
-                            DateFormat('dd/MM/yyyy').format(reagent.dataRegistro),
+                            'Data de Registro',
+                            DateFormat(
+                              'dd/MM/yyyy',
+                            ).format(reagent.dataRegistro),
                             icon: Icons.event_available,
                           ),
                         ],
@@ -136,7 +197,8 @@ class ReagentDetailsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   // Aqui começa o card do QR Code
-                  if (reagent.qrCodeImageUrl != null && reagent.qrCodeImageUrl!.isNotEmpty)
+                  if (reagent.qrCodeImageUrl != null &&
+                      reagent.qrCodeImageUrl!.isNotEmpty)
                     Card(
                       elevation: 2,
                       shape: RoundedRectangleBorder(
@@ -156,8 +218,9 @@ class ReagentDetailsScreen extends StatelessWidget {
                               reagent.qrCodeImageUrl!,
                               width: 200,
                               height: 200,
-                              errorBuilder: (context, error, stackTrace) => 
-                                const Text('Falha ao carregar QR Code'),
+                              errorBuilder:
+                                  (context, error, stackTrace) =>
+                                      const Text('Falha ao carregar QR Code'),
                             ),
                           ],
                         ),
@@ -180,7 +243,9 @@ class ReagentDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailItem(String label, String value, {
+  Widget _buildDetailItem(
+    String label,
+    String value, {
     IconData? icon,
     Color? color,
     bool isExpired = false,
@@ -200,10 +265,7 @@ class ReagentDetailsScreen extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -229,6 +291,10 @@ class ReagentDetailsScreen extends StatelessWidget {
       'description': reagent.descricao,
       'currentQuantity': reagent.quantidade,
       'unit': reagent.unidade.name,
+      'measurementUnit': reagent.unidade.toString().split('.').last,
+      'location': reagent.locLaboratorio,
+      'riskClassification': reagent.classificacaoRisco.name,
+      'storageConditions': reagent.condicoesArmazenamento,
     };
   }
 }

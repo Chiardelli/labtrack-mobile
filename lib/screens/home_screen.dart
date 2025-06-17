@@ -55,23 +55,33 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: _isSearching
-            ? TextField(
-                controller: _searchController,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: 'Buscar reagente...',
-                  border: InputBorder.none,
-                  hintStyle: TextStyle(color: Colors.white70),
+        title:
+            _isSearching
+                ? TextField(
+                  controller: _searchController,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    hintText: 'Buscar reagente...',
+                    border: InputBorder.none,
+                    hintStyle: TextStyle(color: Colors.white70),
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                  onSubmitted: _handleSearch,
+                )
+                : const Text(
+                  'LabTrack',
+                  style: TextStyle(
+                    fontFamily:
+                        'Poppins', // nome da fonte customizada (se você tiver importado)
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
-                style: const TextStyle(color: Colors.white),
-                onSubmitted: _handleSearch,
-              )
-            : const Text('LabTrack'),
         actions: [
           if (!_isSearching)
             IconButton(
-              icon: const Icon(Icons.qr_code_scanner),
+              icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -81,16 +91,21 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           if (!_isSearching)
             IconButton(
-              icon: const Icon(Icons.directions_car),
+              icon: const Icon(Icons.directions_car, color: Colors.white),
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const TransportScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const TransportScreen(),
+                  ),
                 );
               },
             ),
           IconButton(
-            icon: Icon(_isSearching ? Icons.close : Icons.search),
+            icon: Icon(
+              _isSearching ? Icons.close : Icons.search,
+              color: Colors.white,
+            ),
             onPressed: () {
               setState(() {
                 _isSearching = !_isSearching;
@@ -103,63 +118,66 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _refreshData,
-              child: FutureBuilder<List<Reagent>>(
-                future: _reagentsFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Center(
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                onRefresh: _refreshData,
+                child: FutureBuilder<List<Reagent>>(
+                  future: _reagentsFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text('Erro ao carregar reagentes'),
+                            ElevatedButton(
+                              onPressed: _refreshData,
+                              child: const Text('Tentar novamente'),
+                            ),
+                          ],
+                        ),
+                      );
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Center(
+                        child: Text('Nenhum reagente encontrado'),
+                      );
+                    }
+
+                    final reagents = snapshot.data!;
+                    return SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Erro ao carregar reagentes'),
-                          ElevatedButton(
-                            onPressed: _refreshData,
-                            child: const Text('Tentar novamente'),
+                          const Text(
+                            'Reagentes em Destaque',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
+                          const SizedBox(height: 16),
+                          ..._buildFeaturedReagents(reagents.take(2).toList()),
+                          const SizedBox(height: 24),
+                          const Text(
+                            'Estoque Rápido',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildQuickStockGrid(reagents),
                         ],
                       ),
                     );
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(child: Text('Nenhum reagente encontrado'));
-                  }
-
-                  final reagents = snapshot.data!;
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Reagentes em Destaque',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        ..._buildFeaturedReagents(reagents.take(2).toList()),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'Estoque Rápido',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildQuickStockGrid(reagents),
-                      ],
-                    ),
-                  );
-                },
+                  },
+                ),
               ),
-            ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
@@ -168,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ).then((_) => _refreshData());
         },
         backgroundColor: const Color(0xFF0061A8),
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
@@ -176,13 +194,11 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Widget> _buildFeaturedReagents(List<Reagent> reagents) {
     return reagents.map((reagent) {
       final progressValue = reagent.quantidade / 1000;
-      
+
       return Card(
         margin: const EdgeInsets.only(bottom: 16),
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
@@ -215,10 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(width: 10),
                     Text(
                       '${reagent.tipoItem.toString().split('.').last} • ${reagent.quantidade} ${reagent.unidade.name}',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
                     ),
                   ],
                 ),
@@ -234,10 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (reagent.dataVencimento != null)
                   Text(
                     'Validade: ${DateFormat('dd/MM/yyyy').format(reagent.dataVencimento!)}',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   ),
                 const SizedBox(height: 16),
                 LinearProgressIndicator(
@@ -253,17 +263,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Text(
                       '${(progressValue * 100).toInt()}% do estoque',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                     TextButton(
                       onPressed: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => ReagentDetailsScreen(reagent: reagent),
+                            builder:
+                                (context) =>
+                                    ReagentDetailsScreen(reagent: reagent),
                           ),
                         );
                       },
@@ -287,8 +296,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildQuickStockGrid(List<Reagent> reagents) {
-    final quickStockItems = reagents.length > 4 ? reagents.sublist(0, 4) : reagents;
-    
+    final quickStockItems =
+        reagents.length > 4 ? reagents.sublist(0, 4) : reagents;
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -305,10 +315,7 @@ class _HomeScreenState extends State<HomeScreen> {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: Colors.grey.withOpacity(0.1),
-              width: 1,
-            ),
+            side: BorderSide(color: Colors.grey.withOpacity(0.1), width: 1),
           ),
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
@@ -331,26 +338,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: const Color(0xFF0061A8).withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.science,
-                      color: Color(0xFF0061A8),
-                    ),
+                    child: const Icon(Icons.science, color: Color(0xFF0061A8)),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     reagent.descricao,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '${reagent.quantidade} ${reagent.unidade.name}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ],
               ),

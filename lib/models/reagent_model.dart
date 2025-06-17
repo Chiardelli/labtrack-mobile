@@ -17,6 +17,8 @@ class Reagent {
   final double quantidade;
   final Unidade unidade;
   final String locLaboratorio;
+  final bool possuiOrgaoRegulador;
+  final String orgaoRegulador;
   final String condicoesArmazenamento;
   final ClassificacaoRisco classificacaoRisco;
   final DateTime dataFabricacao;
@@ -32,6 +34,8 @@ class Reagent {
     required this.quantidade,
     required this.unidade,
     required this.locLaboratorio,
+    this.possuiOrgaoRegulador = false,
+    this.orgaoRegulador = 'Não possui',
     required this.condicoesArmazenamento,
     required this.classificacaoRisco,
     required this.dataFabricacao,
@@ -78,9 +82,10 @@ class Reagent {
           json['dataRegistro'] != null
               ? DateTime.parse(json['dataRegistro'])
               : DateTime.now(),
-    );
-  }
-
+    possuiOrgaoRegulador: json['possuiOrgaoRegulador'] == true,
+    orgaoRegulador: json['orgaoRegulador']?.toString() ?? 'Não possui',
+  );
+}
   String get quantidadeFormatada {
     return '${quantidade.toStringAsFixed(2)} ${unidade.name}';
   }
